@@ -11,6 +11,8 @@ directory = "./public"
 binding = "ASSETS"
 # Worker runs first so auth can gate HTML and handle /api/*
 run_worker_first = true
+# Disable Assets clean-URL redirects (/login.html ↔ /login) which looped with the auth gate
+html_handling = "none"
 
 # Required by Workers Builds PR checks (`wrangler preview`)
 [previews]
