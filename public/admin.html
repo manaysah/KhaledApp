@@ -139,12 +139,12 @@ document.getElementById('add-form').addEventListener('submit', async (e) => {
 
 document.getElementById('logout').addEventListener('click', async () => {
   await api('/api/auth/logout', { method: 'POST', body: '{}' });
-  location.replace('/login');
+  location.replace('/login.html');
 });
 
 load().catch((err) => {
   showMsg(err.message, 'error');
-  setTimeout(() => location.replace('/login'), 1200);
+  setTimeout(() => location.replace('/login.html'), 1200);
 });
 </script>
 </body>

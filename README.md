@@ -15,7 +15,7 @@ Workers Builds PR checks run `wrangler preview` and require both `[assets]` and 
 
 ## Auth flow
 
-1. Visitor opens the site → redirected to `/login` unless a full session exists.
+1. Visitor opens the site → redirected to `/login.html` unless a full session exists.
 2. **Email allowlist** — only emails in D1 `allowlist` may request a login code. Site admin `mhmd.manaysah@gmail.com` is always seeded (bare `@gmail` normalizes to `@gmail.com`).
 3. **Email OTP** — 6-digit code emailed via [Resend](https://resend.com) (or shown in the UI when `AUTH_DEV_MODE=true`).
 4. **TOTP** — after email verification, enroll or verify an authenticator app. Secrets are AES-GCM encrypted at rest.
