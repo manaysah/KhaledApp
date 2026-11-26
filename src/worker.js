@@ -3,7 +3,14 @@ import { handleAuth } from './routes/auth.js';
 import { handleAdmin } from './routes/admin.js';
 import { json } from './lib/http.js';
 
-const PUBLIC_EXACT = new Set(['/login.html', '/favicon.ico', '/robots.txt']);
+// Assets default html_handling serves /login.html as /login (and 307s .html → extensionless).
+// Treat both as public so auth redirects never loop.
+const PUBLIC_EXACT = new Set([
+  '/login',
+  '/login.html',
+  '/favicon.ico',
+  '/robots.txt',
+]);
 const PUBLIC_PREFIXES = ['/assets/'];
 
 function isPublicAsset(pathname) {
@@ -13,6 +20,12 @@ function isPublicAsset(pathname) {
 
 function redirect(url) {
   return Response.redirect(url, 302);
+}
+
+function loginUrl(url, search = '') {
+  const target = new URL('/login', url);
+  if (search) target.search = search.startsWith('?') ? search.slice(1) : search;
+  return target.toString();
 }
 
 function missingBindings(env) {
@@ -55,9 +68,9 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    if (pathname === '/admin.html') {
+    if (pathname === '/admin' || pathname === '/admin.html') {
       const session = await readFullSession(env, request);
-      if (!session) return redirect(new URL('/login.html', url).toString());
+      if (!session) return redirect(loginUrl(url));
       if (session.role !== 'admin') return redirect(new URL('/', url).toString());
       return env.ASSETS.fetch(request);
     }
@@ -67,9 +80,9 @@ export default {
 
     const partial = await readPartialSession(env, request);
     if (partial) {
-      return redirect(new URL('/login.html?step=totp', url).toString());
+      return redirect(loginUrl(url, 'step=totp'));
     }
 
-    return redirect(new URL('/login.html', url).toString());
+    return redirect(loginUrl(url));
   },
 };
