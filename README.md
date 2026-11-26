@@ -21,6 +21,7 @@ Workers Builds PR checks run `wrangler preview` and require both `[assets]` and 
 4. **TOTP** — after email verification, enroll or verify an authenticator app. Secrets are AES-GCM encrypted at rest.
 5. Full session cookie (`olt_sid`) is issued only after TOTP succeeds. The Worker gates `/` and `/admin.html` until then.
 6. **Admin** (`/admin.html`) lists allowlisted emails and can add/revoke (admin row cannot be removed).
+7. **Access alerts** — when an allowlisted email starts sign-in or completes it, a notice is emailed to `ACCESS_NOTIFY_EMAIL` (defaults to the site admin).
 
 ## Bindings & secrets (do not commit secret values)
 
@@ -33,6 +34,7 @@ Workers Builds PR checks run `wrangler preview` and require both `[assets]` and 
 | `TOTP_ENCRYPTION_KEY` | Secret | Encrypt TOTP secrets at rest |
 | `RESEND_API_KEY` | Secret | Send login codes |
 | `EMAIL_FROM` | Var or secret | Verified Resend from-address |
+| `ACCESS_NOTIFY_EMAIL` | Var (optional) | Inbox for allowlist access alerts; defaults to admin |
 | `AUTH_DEV_MODE` | Var | `true` only for local/preview testing |
 
 ```bash

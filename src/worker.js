@@ -53,7 +53,7 @@ function missingBindings(env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = normalizePathname(url.pathname);
 
@@ -68,7 +68,7 @@ export default {
     }
 
     if (pathname.startsWith('/api/auth/')) {
-      return handleAuth(request, env, pathname);
+      return handleAuth(request, env, pathname, ctx);
     }
 
     if (pathname === '/api/admin/allowlist' || pathname.startsWith('/api/admin/')) {
