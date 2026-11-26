@@ -30,3 +30,4 @@ id = "5bfc60a20edd4bbc869710eb6fbd8a0c"
 [vars]
 AUTH_DEV_MODE = "false"
 # EMAIL_FROM = "Our Little Tide <login@your-domain.com>"
+# ACCESS_NOTIFY_EMAIL = "mhmd.manaysah@gmail.com"

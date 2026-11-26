@@ -1,4 +1,4 @@
-import { sendLoginCode, normalizeEmail, isValidEmail } from '../lib/email.js';
+import { sendLoginCode, normalizeEmail, isValidEmail, notifyAllowlistAccess } from '../lib/email.js';
 import {
   getAllowlistEntry,
   getUser,
@@ -23,10 +23,17 @@ import { json, readJson, methodNotAllowed, withCookies } from '../lib/http.js';
 
 const OTP_TTL_SEC = 10 * 60;
 
-export async function handleAuth(request, env, pathname) {
+function scheduleAccessNotify(ctx, env, request, detail) {
+  const job = notifyAllowlistAccess(env, request, detail).catch((err) => {
+    console.error('access notification failed', err);
+  });
+  if (ctx?.waitUntil) ctx.waitUntil(job);
+}
+
+export async function handleAuth(request, env, pathname, ctx) {
   if (pathname === '/api/auth/request-otp') {
     if (request.method !== 'POST') return methodNotAllowed('POST');
-    return requestOtp(request, env);
+    return requestOtp(request, env, ctx);
   }
   if (pathname === '/api/auth/verify-otp') {
     if (request.method !== 'POST') return methodNotAllowed('POST');
@@ -38,11 +45,11 @@ export async function handleAuth(request, env, pathname) {
   }
   if (pathname === '/api/auth/totp/confirm') {
     if (request.method !== 'POST') return methodNotAllowed('POST');
-    return totpConfirm(request, env);
+    return totpConfirm(request, env, ctx);
   }
   if (pathname === '/api/auth/totp/verify') {
     if (request.method !== 'POST') return methodNotAllowed('POST');
-    return totpVerify(request, env);
+    return totpVerify(request, env, ctx);
   }
   if (pathname === '/api/auth/me') {
     if (request.method !== 'GET') return methodNotAllowed('GET');
@@ -55,7 +62,7 @@ export async function handleAuth(request, env, pathname) {
   return json({ error: 'Not found' }, 404);
 }
 
-async function requestOtp(request, env) {
+async function requestOtp(request, env, ctx) {
   const body = await readJson(request);
   const email = normalizeEmail(body?.email);
   if (!isValidEmail(email)) {
@@ -86,6 +93,12 @@ async function requestOtp(request, env) {
   if (!sent.ok) {
     return json({ error: sent.error || 'Could not send login code.' }, 500);
   }
+
+  scheduleAccessNotify(ctx, env, request, {
+    email,
+    event: 'sign_in_started',
+    role: entry.role,
+  });
 
   const payload = {
     ok: true,
@@ -187,7 +200,7 @@ async function totpSetup(request, env) {
   });
 }
 
-async function totpConfirm(request, env) {
+async function totpConfirm(request, env, ctx) {
   const partial = await readPartialSession(env, request);
   if (!partial) return json({ error: 'Email verification required first.' }, 401);
 
@@ -216,6 +229,12 @@ async function totpConfirm(request, env) {
   await destroyPartialSession(env, request);
   const sid = await createFullSession(env, partial.email, entry.role);
 
+  scheduleAccessNotify(ctx, env, request, {
+    email: partial.email,
+    event: 'signed_in',
+    role: entry.role,
+  });
+
   return withCookies(
     json({
       ok: true,
@@ -227,7 +246,7 @@ async function totpConfirm(request, env) {
   );
 }
 
-async function totpVerify(request, env) {
+async function totpVerify(request, env, ctx) {
   const partial = await readPartialSession(env, request);
   if (!partial) return json({ error: 'Email verification required first.' }, 401);
 
@@ -257,6 +276,12 @@ async function totpVerify(request, env) {
 
   await destroyPartialSession(env, request);
   const sid = await createFullSession(env, partial.email, entry.role);
+
+  scheduleAccessNotify(ctx, env, request, {
+    email: partial.email,
+    event: 'signed_in',
+    role: entry.role,
+  });
 
   return withCookies(
     json({
