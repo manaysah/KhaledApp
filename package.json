@@ -1,0 +1,16 @@
+{
+  "name": "khaledapp",
+  "private": true,
+  "type": "module",
+  "description": "Our Little Tide — private family photo vault (Cloudflare Worker)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "db:migrate:local": "wrangler d1 migrations apply khaledapp-auth --local",
+    "db:migrate:remote": "wrangler d1 migrations apply khaledapp-auth --remote",
+    "deploy": "wrangler deploy",
+    "deploy:dry": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

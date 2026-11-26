@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Sign in — Our Little Tide</title>
+<style>
+:root{--ink:#26302d;--muted:#73807a;--paper:#f7f7f2;--card:#fff;--line:#e5e9e2;--accent:#547c68;--accent2:#e9f0e9;--danger:#8b3a3a}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% -10%,#e4eee6 0%,transparent 55%),radial-gradient(900px 500px at 100% 0%,#dfe8e3 0%,transparent 50%),var(--paper);color:var(--ink);font-family:Georgia,"Times New Roman",serif;display:grid;place-items:center;padding:28px}
+.card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 26px 24px;box-shadow:0 18px 40px #304b3b12}
+.brand{display:flex;align-items:center;gap:11px;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-weight:700;letter-spacing:-.3px;margin-bottom:18px}
+.logo{width:38px;height:38px;border-radius:13px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:18px;font-family:serif}
+h1{font-weight:500;font-size:28px;letter-spacing:-.4px;margin:0 0 8px;line-height:1.15}
+p.lead{margin:0 0 22px;color:var(--muted);font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.55}
+label{display:block;font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;font-weight:650;color:#516058;margin:0 0 7px}
+input{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:650 15px ui-sans-serif,system-ui,sans-serif;background:#fbfcf9;color:var(--ink);margin-bottom:14px}
+input:focus{outline:2px solid #547c6844;border-color:#547c68}
+.btn{width:100%;border:0;border-radius:30px;padding:12px 18px;cursor:pointer;font:650 14px ui-sans-serif,system-ui,sans-serif;background:var(--accent);color:#fff}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.secondary{background:#fff;border:1px solid var(--line);color:var(--ink);margin-top:10px}
+.msg{font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;margin:0 0 14px;padding:10px 12px;border-radius:12px;display:none}
+.msg.error{display:block;background:#f8ecec;color:var(--danger)}
+.msg.ok{display:block;background:var(--accent2);color:#355344}
+.step{display:none}.step.active{display:block}
+.secret-box{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all;background:#f3f6f2;border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 14px}
+#qr{display:grid;place-items:center;margin:0 0 14px;min-height:180px}
+.hint{font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;color:var(--muted);line-height:1.45;margin:-6px 0 14px}
+.dev{font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;background:#fff8e8;border:1px dashed #d6c089;border-radius:12px;padding:10px 12px;margin:0 0 14px;display:none}
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+  <div class="brand"><img class="logo" src="assets/logo.png" width="38" height="38" alt="" decoding="async" style="width:38px;height:38px;border-radius:13px;object-fit:cover;object-position:center 42%;background:transparent"><span>Our Little Tide</span></div>
+
+  <div id="msg" class="msg" role="status"></div>
+  <div id="dev" class="dev"></div>
+
+  <section id="step-email" class="step active">
+    <h1>Private sign-in</h1>
+    <p class="lead">Only family emails on the allowlist can continue. You’ll confirm with an authenticator app next.</p>
+    <form id="form-email">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required placeholder="you@example.com">
+      <button class="btn" type="submit">Send login code</button>
+    </form>
+  </section>
+
+  <section id="step-otp" class="step">
+    <h1>Check your email</h1>
+    <p class="lead">Enter the 6-digit code we sent to <strong id="otp-email"></strong>.</p>
+    <form id="form-otp">
+      <label for="otp">Login code</label>
+      <input id="otp" name="otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required placeholder="123456">
+      <button class="btn" type="submit">Verify email</button>
+      <button class="btn secondary" type="button" id="back-email">Use a different email</button>
+    </form>
+  </section>
+
+  <section id="step-totp-setup" class="step">
+    <h1>Set up authenticator</h1>
+    <p class="lead">Scan this with Google Authenticator, 1Password, or Authy. Photos stay locked until TFA is confirmed.</p>
+    <div id="qr"></div>
+    <p class="hint">Or enter this secret manually:</p>
+    <div class="secret-box" id="totp-secret"></div>
+    <form id="form-totp-setup">
+      <label for="totp-setup-code">Authenticator code</label>
+      <input id="totp-setup-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required placeholder="123456">
+      <button class="btn" type="submit">Confirm and enter</button>
+    </form>
+  </section>
+
+  <section id="step-totp" class="step">
+    <h1>Two-factor check</h1>
+    <p class="lead">Enter the current code from your authenticator app for <strong id="totp-email"></strong>.</p>
+    <form id="form-totp">
+      <label for="totp-code">Authenticator code</label>
+      <input id="totp-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required placeholder="123456">
+      <button class="btn" type="submit">Unlock memories</button>
+    </form>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let currentEmail = '';
+
+function showMsg(text, type) {
+  const el = $('msg');
+  el.textContent = text || '';
+  el.className = 'msg' + (text ? ' ' + type : '');
+}
+
+function showStep(id) {
+  document.querySelectorAll('.step').forEach((s) => s.classList.remove('active'));
+  $(id).classList.add('active');
+  showMsg('');
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+async function bootstrap() {
+  try {
+    const me = await api('/api/auth/me');
+    if (me.authenticated) {
+      location.replace('/');
+      return;
+    }
+    if (me.emailVerified) {
+      currentEmail = me.email;
+      if (me.needsTotpSetup) await startTotpSetup();
+      else {
+        $('totp-email').textContent = me.email;
+        showStep('step-totp');
+      }
+    }
+  } catch {
+    /* stay on email step */
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('step') === 'totp' && !document.querySelector('#step-totp.active') && !document.querySelector('#step-totp-setup.active')) {
+    /* me() already handled when partial cookie exists */
+  }
+}
+
+$('form-email').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+  $('dev').style.display = 'none';
+  try {
+    const data = await api('/api/auth/request-otp', { method: 'POST', body: JSON.stringify({ email }) });
+    currentEmail = data.email || email;
+    $('otp-email').textContent = currentEmail;
+    if (data.devCode) {
+      $('dev').style.display = 'block';
+      $('dev').textContent = 'Dev mode code: ' + data.devCode;
+      $('otp').value = data.devCode;
+    }
+    showStep('step-otp');
+    showMsg(data.message || 'Code sent.', 'ok');
+  } catch (err) {
+    showMsg(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('back-email').addEventListener('click', () => showStep('step-email'));
+
+$('form-otp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const data = await api('/api/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email: currentEmail, code: $('otp').value.trim() }),
+    });
+    if (data.needsTotpSetup) await startTotpSetup();
+    else {
+      $('totp-email').textContent = data.email;
+      showStep('step-totp');
+    }
+  } catch (err) {
+    showMsg(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function startTotpSetup() {
+  showStep('step-totp-setup');
+  const data = await api('/api/auth/totp/setup', { method: 'POST', body: '{}' });
+  $('totp-secret').textContent = data.secret;
+  const canvas = document.createElement('canvas');
+  $('qr').replaceChildren(canvas);
+  await QRCode.toCanvas(canvas, data.otpauthUrl, { width: 180, margin: 1, color: { dark: '#26302d', light: '#ffffff' } });
+}
+
+$('form-totp-setup').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+  try {
+    await api('/api/auth/totp/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ code: $('totp-setup-code').value.trim() }),
+    });
+    location.replace('/');
+  } catch (err) {
+    showMsg(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('form-totp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+  try {
+    await api('/api/auth/totp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ code: $('totp-code').value.trim() }),
+    });
+    location.replace('/');
+  } catch (err) {
+    showMsg(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+bootstrap();
+</script>
+</body>
+</html>

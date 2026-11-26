@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local `wrangler pages dev` (never commit .dev.vars)
+AUTH_DEV_MODE=true
+SESSION_SECRET=dev-session-secret-change-me
+TOTP_ENCRYPTION_KEY=dev-totp-key-change-me
+# RESEND_API_KEY=
+# EMAIL_FROM=Our Little Tide <login@example.com>
