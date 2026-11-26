@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Allowlist — Our Little Tide</title>
+<style>
+:root{--ink:#26302d;--muted:#73807a;--paper:#f7f7f2;--card:#fff;--line:#e5e9e2;--accent:#547c68;--accent2:#e9f0e9;--danger:#8b3a3a}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}
+.shell{max-width:720px;margin:auto;padding:0 24px 60px}
+header{height:78px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;text-decoration:none;color:inherit}
+.logo{width:36px;height:36px;border-radius:12px;object-fit:cover;object-position:center 42%;display:block;box-shadow:0 0 0 1px var(--line)}
+h1{font-family:Georgia,serif;font-weight:500;font-size:32px;letter-spacing:-.5px;margin:28px 0 8px}
+.lead{color:var(--muted);margin:0 0 22px;line-height:1.55}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+input{flex:1;min-width:220px;border:1px solid var(--line);border-radius:14px;padding:11px 13px;font:650 14px inherit;background:#fbfcf9}
+.btn{border:0;border-radius:30px;padding:11px 16px;cursor:pointer;font:650 13px inherit;background:var(--accent);color:#fff}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:#fff;border:1px solid #e4c8c8;color:var(--danger)}
+.msg{font-size:13px;margin:12px 0 0;padding:10px 12px;border-radius:12px;display:none}
+.msg.error{display:block;background:#f8ecec;color:var(--danger)}
+.msg.ok{display:block;background:var(--accent2);color:#355344}
+table{width:100%;border-collapse:collapse;margin-top:18px}
+th,td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--muted);font-weight:650;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.role{display:inline-block;padding:4px 10px;border-radius:20px;background:var(--accent2);color:#416452;font-size:12px;font-weight:650}
+.role.admin{background:#e8eef8;color:#34507a}
+.empty{color:var(--muted);padding:18px 0}
+@media(max-width:560px){th:nth-child(3),td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <a class="brand" href="/"><img class="logo" src="assets/logo.png" width="36" height="36" alt="" decoding="async" style="width:36px;height:36px;border-radius:12px;object-fit:cover;object-position:center 42%;display:block"><span>Our Little Tide</span></a>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a class="btn ghost" href="/">Back to memories</a>
+      <button class="btn ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </header>
+  <h1>Who can sign in</h1>
+  <p class="lead">Grant or revoke email access. New people still must verify email + set up an authenticator before they can see photos.</p>
+  <div class="panel">
+    <form id="add-form">
+      <input id="email" type="email" required placeholder="family@example.com" aria-label="Email to allow">
+      <button class="btn" type="submit">Allow email</button>
+    </form>
+    <div id="msg" class="msg" role="status"></div>
+    <table>
+      <thead><tr><th>Email</th><th>Role</th><th>Added</th><th></th></tr></thead>
+      <tbody id="rows"><tr><td class="empty" colspan="4">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const msg = document.getElementById('msg');
+function showMsg(text, type) {
+  msg.textContent = text || '';
+  msg.className = 'msg' + (text ? ' ' + type : '');
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Amman' }) + ' Asia/Amman';
+  } catch {
+    return iso;
+  }
+}
+
+async function load() {
+  const me = await api('/api/auth/me');
+  if (!me.authenticated || !me.isAdmin) {
+    location.replace('/');
+    return;
+  }
+  const { entries } = await api('/api/admin/allowlist');
+  const tbody = document.getElementById('rows');
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td class="empty" colspan="4">No emails yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map((e) => {
+    const canRemove = e.role !== 'admin';
+    return `<tr>
+      <td>${escapeHtml(e.email)}</td>
+      <td><span class="role ${e.role}">${escapeHtml(e.role)}</span></td>
+      <td>${escapeHtml(fmtDate(e.created_at))}</td>
+      <td>${canRemove ? `<button class="btn danger" data-email="${escapeAttr(e.email)}" type="button">Revoke</button>` : '—'}</td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('button[data-email]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Revoke sign-in for ' + btn.dataset.email + '?')) return;
+      try {
+        await api('/api/admin/allowlist?email=' + encodeURIComponent(btn.dataset.email), { method: 'DELETE' });
+        showMsg('Revoked ' + btn.dataset.email, 'ok');
+        await load();
+      } catch (err) {
+        showMsg(err.message, 'error');
+      }
+    });
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/`/g, '&#96;');
+}
+
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  try {
+    await api('/api/admin/allowlist', { method: 'POST', body: JSON.stringify({ email }) });
+    document.getElementById('email').value = '';
+    showMsg('Allowed ' + email, 'ok');
+    await load();
+  } catch (err) {
+    showMsg(err.message, 'error');
+  }
+});
+
+document.getElementById('logout').addEventListener('click', async () => {
+  await api('/api/auth/logout', { method: 'POST', body: '{}' });
+  location.replace('/login.html');
+});
+
+load().catch((err) => {
+  showMsg(err.message, 'error');
+  setTimeout(() => location.replace('/login.html'), 1200);
+});
+</script>
+</body>
+</html>
